@@ -2,3 +2,6 @@
 /.idea/
 test
 user
+*kmod.*o*
+Module.symvers
+modules.order
