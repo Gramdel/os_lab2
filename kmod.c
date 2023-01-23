@@ -33,6 +33,7 @@ struct dentry_info {
 static int flags;
 static struct page_info* page_info;
 static struct dentry_info* dentry_info;
+static DEFINE_MUTEX(custom_lock);
 
 static void reset_flags_and_info(void) {
     if (page_info) {
@@ -179,7 +180,15 @@ static int custom_show(struct seq_file* file, void* v) {
 }
 
 static int custom_open(struct inode* inode, struct file* file) {
+    if (!mutex_trylock(&custom_lock)) {
+        return -EBUSY;
+    }
     return single_open(file, custom_show, NULL);
+}
+
+static int custom_release(struct inode* inode, struct file* file) {
+    mutex_unlock(&custom_lock);
+    return seq_release(inode, file);
 }
 
 static ssize_t custom_write(struct file* file, const char __user* buff, size_t size, loff_t* fpos) {
@@ -233,7 +242,7 @@ static const struct file_operations custom_ops = {
         .open = custom_open,
         .write = custom_write,
         .read = seq_read,
-        .release = seq_release
+        .release = custom_release
 };
 
 static int __init kmod_init(void) {
